@@ -29,27 +29,38 @@ const resolvers = {
             if (!user) {
                 throw new AuthenticationError('Wrong email');
             }
-
             const correctPw = await user.isCorrectPassword(password);
 
             if (!correctPw) {
                 throw new AuthenticationError('Wrong password!');
             }
-
             const token = signToken(user);
             return { token, user };
         },
-        addBook: async (parent, { bookData }, context) => {
+        saveBook: async (parent, { bookData }, context) => {
             if (context.user) {
                 const updatedUser = await User.findByIdAndUpdate(
                     { _id: context.user._id },
-                    { $push: { savedBook: bookData } },
+                    { $push: { saveBook: bookData } },
                     { new: true }
                 );
-
                 return updatedUser;
             }
             throw new AuthenticationError('You need to be logged in!')
         },
+        removeBook: async (parent, { bookId }, context) => {
+            if (context.user) {
+                const updatedUser = await User.findByIdAndUpdate(
+                    { _id: context.user._id },
+                    { $pull: { savedBooks: bookId } },
+                    { new: true }
+                ).populate('savedBooks');
+
+                return updatedUser;
+            }
+            throw new AuthenticationError('You need to be logged in!')
+        }
     }
-}
+};
+
+module.exports = resolvers;
