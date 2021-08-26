@@ -1,6 +1,7 @@
 const { AuthenticationError } = require('apollo-server-express');
 const { User, Book } = require('../models');
 const { signToken } = require('../utils/auth');
+const db = require('../config/connection')
 
 const resolvers = {
     Query: {
@@ -29,27 +30,38 @@ const resolvers = {
             if (!user) {
                 throw new AuthenticationError('Wrong email');
             }
-
             const correctPw = await user.isCorrectPassword(password);
 
             if (!correctPw) {
                 throw new AuthenticationError('Wrong password!');
             }
-
             const token = signToken(user);
             return { token, user };
         },
-        addBook: async (parent, { bookData }, context) => {
-            if (context.user) {
-                const updatedUser = await User.findByIdAndUpdate(
-                    { _id: context.user._id },
-                    { $push: { savedBook: bookData } },
+        saveBook: async (parent, { bookData }, context) => {
+            if (context.book) {
+                const updatedBook = await Book.findByIdAndUpdate(
+                    { _id: context.book._id },
+                    { $push: { saveBook: bookData } },
                     { new: true }
                 );
-
-                return updatedUser;
+                return updatedBook;
             }
             throw new AuthenticationError('You need to be logged in!')
         },
+        removeBook: async (parent, { bookId }, context) => {
+            if (context.book) {
+                const updatedBook = await Book.findByIdAndUpdate(
+                    { _id: context.book._id },
+                    { $pull: { savedBooks: bookId } },
+                    { new: true }
+                ).populate('savedBooks');
+
+                return updatedBook;
+            }
+            throw new AuthenticationError('You need to be logged in!')
+        }
     }
-}
+};
+
+module.exports = resolvers;
